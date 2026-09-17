@@ -7,6 +7,9 @@ Those two changes addressed different parts of the problem. Additional scanners 
 
 This article describes that operational approach and the reasoning behind it. The implementation details remain private; the topology below is illustrative. The operational checks are guidance for applying the approach, rather than a reconstruction of every step taken during the incident.
 
+
+**Companion post:** [From SMTP Errors to Abuse Response: Building Email Security Automation](https://github.com/mohammad-hachem/email-abuse-response-automation).
+
 ## Why I would treat capacity and traffic policy together
 
 Adding scanners can relieve pressure when message inspection is the bottleneck. It also gives unwanted traffic more processing capacity unless an admission policy controls it.
@@ -139,7 +142,7 @@ I also implemented a separate outbound-abuse workflow connected to the distribut
 
 That workflow addressed abusive sending and IP reputation. The inbound response described here addressed incoming load and delivery continuity. Keeping those objectives separate makes the enforcement decisions easier to explain and review.
 
-The reduction in IP blacklisting associated with the outbound work should not be presented as an outcome of this inbound incident.
+Read the outbound case study: **[From SMTP Errors to Abuse Response](https://github.com/mohammad-hachem/email-abuse-response-automation)**. It covers the detection rules, automatic restrictions, legitimate bulk-mail exceptions, and manual recovery process.
 
 ## What I would tell someone starting this
 
