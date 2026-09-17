@@ -7,16 +7,15 @@ Those two changes addressed different parts of the problem. Additional scanners 
 
 This article describes that operational approach and the reasoning behind it. The implementation details remain private; the topology below is illustrative. The operational checks are guidance for applying the approach, rather than a reconstruction of every step taken during the incident.
 
-
 **Companion post:** [From SMTP Errors to Abuse Response: Building Email Security Automation](https://github.com/mohammad-hachem/email-abuse-response-automation).
 
-## Why I would treat capacity and traffic policy together
+## Why I combined scaling with rate limits
 
 Adding scanners can relieve pressure when message inspection is the bottleneck. It also gives unwanted traffic more processing capacity unless an admission policy controls it.
 
 Tightening limits can reduce pressure, but a limit that is too broad can affect unrelated senders. An incoming connection may belong to a large mail provider or relay serving many legitimate users.
 
-My response combined horizontal scaling with sender- and IP-based limits. I would explain the decision in terms of two questions:
+I added incoming Rspamd capacity and enabled sender- and IP-based rate limits. Together, those changes addressed two questions:
 
 - Can the platform process the traffic it should accept?
 - Can one source consume a disproportionate share of that capacity?
@@ -61,7 +60,7 @@ Before expanding a scanner pool, identify where work is accumulating. Useful sig
 | DNS, Redis, and other dependency latency | Would more scanners overload a shared dependency? |
 | Downstream delivery errors | Is the bottleneck after scanning? |
 
-I would compare these signals before and after each capacity change. More scanner instances are useful only if the rest of the path can support them.
+Compare these signals before and after each capacity change. More scanner instances are useful only if the rest of the path can support them.
 
 Horizontal scaling also needs an operational exit path: stop assigning new requests to an unhealthy scanner, allow outstanding work to finish where possible, and observe the remaining pool. Test the integration's timeout and failure behavior before relying on it during an incident.
 
@@ -109,7 +108,7 @@ For a new deployment, trace a controlled message through the entire path: source
 
 The difficult part is choosing controls that reduce abusive load without treating every burst as malicious.
 
-For an implementation of this approach, I would:
+When applying this approach:
 
 - Establish normal burst patterns before choosing thresholds.
 - Review shared mail providers and relays before applying broad IP restrictions.
@@ -119,9 +118,9 @@ For an implementation of this approach, I would:
 
 No universal threshold is published here. Appropriate rates depend on traffic mix, message size, recipient behavior, shared infrastructure, and the platform's processing capacity. Copying another operator's number would hide those decisions.
 
-## How I would judge recovery
+## The outcome and recovery checks
 
-The incoming attack was mitigated using horizontal scanner scaling and sender/IP rate limiting.
+I mitigated the incoming attack by expanding the Rspamd scanner pool and enabling incoming rate limits by sender and IP.
 
 For someone applying the approach, recovery should be demonstrated through several observations:
 
@@ -144,12 +143,14 @@ That workflow addressed abusive sending and IP reputation. The inbound response 
 
 Read the outbound case study: **[From SMTP Errors to Abuse Response](https://github.com/mohammad-hachem/email-abuse-response-automation)**. It covers the detection rules, automatic restrictions, legitimate bulk-mail exceptions, and manual recovery process.
 
-## What I would tell someone starting this
+## What I took from this incident
 
-- I would first locate the bottleneck; scanner capacity is only one part of mail delivery.
-- I would check that adding scanners does not multiply a source's effective rate allowance.
-- I would define “sender” and “source IP” precisely before building rules around them.
-- I would verify what the mail server actually does with a rate-limit result.
-- I would keep legitimate delivery and queue age visible throughout the response.
+I used two controls together: more incoming Rspamd scanners and rate limits by sender and IP. The response addressed processing capacity and the traffic contributing to the load. That combination mitigated the attack.
 
-The decision worth carrying forward from this incident is to plan processing capacity and traffic limits together, then verify the effect on real delivery.
+For another operator applying this approach, these are the checks to keep in front of you:
+
+- Locate the bottleneck before adding capacity; scanning is only one part of mail delivery.
+- Check that adding scanners does not multiply a source's effective rate allowance.
+- Define “sender” and “source IP” precisely before building rules around them.
+- Verify what the mail server actually does with a rate-limit result.
+- Keep legitimate delivery and queue age visible throughout the response.
